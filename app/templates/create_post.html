@@ -14,6 +14,11 @@
                 <textarea id="summernote" name="content">{{ post.content if post else '' }}</textarea>
             </div>
             <div>
+                <label for="tags" class="block text-sm font-medium text-gray-700">Tags (comma-separated)</label>
+                {{ form.tags(class="w-full p-2 mt-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="e.g., tech, python, blog") }}
+                <p class="text-sm text-gray-500 mt-1">{{ form.tags.description }}</p>
+            </div>
+            <div>
                 <label for="scheduled_at" class="block text-sm font-medium text-gray-700">Schedule At (optional)</label>
                 {{ form.scheduled_at(class="w-full p-2 mt-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500") }}
             </div>
@@ -21,14 +26,13 @@
         </form>
     </div>
 
-    <!-- Summernote Initialization -->
     <script>
         $(document).ready(function() {
             $('#summernote').summernote({
-                height: 400,  // Set editor height
+                height: 400,
                 minHeight: null,
                 maxHeight: null,
-                focus: true,  // Focus on load
+                focus: true,
                 placeholder: 'Enter post content here...',
                 toolbar: [
                     ['style', ['style']],
@@ -44,7 +48,7 @@
                 ],
                 callbacks: {
                     onChange: function(contents, $editable) {
-                        $('#summernote').val(contents);  // Sync content to textarea
+                        $('#summernote').val(contents);
                     }
                 }
             });

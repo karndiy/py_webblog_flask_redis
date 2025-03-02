@@ -1,11 +1,12 @@
 from flask import Blueprint, render_template, request, redirect, url_for, g
-from .models import Post, Comment, User
+from .models import Post, Comment, User, Tag, post_tags
 from . import db, redis_client
 from .forms import PostForm, CommentForm
 from functools import wraps
 import jwt
 import os
 from datetime import datetime
+import redis.exceptions
 
 bp = Blueprint('main', __name__)
 
@@ -26,6 +27,20 @@ def token_required(f):
         return f(*args, **kwargs)
     return decorated
 
+def process_tags(tag_string):
+    """Convert comma-separated tag string to Tag objects."""
+    if not tag_string:
+        return []
+    tag_names = [name.strip().lower() for name in tag_string.split(',') if name.strip()]
+    tags = []
+    for name in tag_names:
+        tag = Tag.query.filter_by(name=name).first()
+        if not tag:
+            tag = Tag(name=name)
+            db.session.add(tag)
+        tags.append(tag)
+    return tags
+
 @bp.route('/')
 @token_required
 def index():
@@ -40,32 +55,6 @@ def view_post(id):
     form = CommentForm()
     return render_template('post.html', post=post, comments=comments, form=form, current_user=g.get('current_user'))
 
-
-# @bp.route('/create', methods=['GET', 'POST'])
-# @token_required
-# def create_post():
-#     if not g.current_user:
-#         return redirect(url_for('auth.login'))
-#     form = PostForm()
-#     if request.method == 'POST' and form.validate_on_submit():
-#         post = Post(
-#             title=form.title.data,
-#             content=form.content.data,  # This now contains HTML from TinyMCE
-#             user_id=g.current_user.id,
-#             scheduled_at=form.scheduled_at.data if form.scheduled_at.data else None
-#         )
-#         db.session.add(post)
-#         db.session.commit()
-        
-#         if form.scheduled_at.data:
-#             try:
-#                 redis_client.set(f"post:{post.id}", post.content)
-#             except redis.exceptions.ConnectionError:
-#                 print("Warning: Could not connect to Redis. Post scheduled but not stored in Redis.")
-            
-#         return redirect(url_for('main.index'))
-#     return render_template('create_post.html', form=form, current_user=g.get('current_user'))
-
 @bp.route('/create', methods=['GET', 'POST'])
 @token_required
 def create_post():
@@ -75,10 +64,11 @@ def create_post():
     if request.method == 'POST' and form.validate_on_submit():
         post = Post(
             title=form.title.data,
-            content=form.content.data,  # Receives Summernote HTML
+            content=form.content.data,
             user_id=g.current_user.id,
             scheduled_at=form.scheduled_at.data if form.scheduled_at.data else None
         )
+        post.tags = process_tags(form.tags.data)
         db.session.add(post)
         db.session.commit()
         
@@ -100,11 +90,19 @@ def edit_post(id):
     if g.current_user.id != post.user_id:
         return redirect(url_for('main.index'))
     form = PostForm(obj=post)
+    if request.method == 'GET':
+        form.tags.data = ', '.join(tag.name for tag in post.tags)
     if request.method == 'POST' and form.validate_on_submit():
         post.title = form.title.data
         post.content = form.content.data
         post.scheduled_at = form.scheduled_at.data if form.scheduled_at.data else None
+        post.tags = process_tags(form.tags.data)
         db.session.commit()
+        if form.scheduled_at.data:
+            try:
+                redis_client.set(f"post:{post.id}", post.content)
+            except redis.exceptions.ConnectionError:
+                print("Warning: Could not connect to Redis. Post scheduled but not stored in Redis.")
         return redirect(url_for('main.index'))
     return render_template('create_post.html', form=form, post=post, current_user=g.get('current_user'))
 
@@ -124,7 +122,15 @@ def delete_post(id):
 @token_required
 def search():
     query = request.args.get('q')
-    posts = Post.query.filter(Post.title.contains(query) | Post.content.contains(query)).all()
+    if not query:
+        posts = Post.query.all()  # Return all posts if no query
+    else:
+        # Search in title, content, and tags
+        posts = Post.query.join(post_tags, isouter=True).join(Tag, isouter=True).filter(
+            (Post.title.contains(query)) |
+            (Post.content.contains(query)) |
+            (Tag.name.contains(query))
+        ).distinct().all()
     return render_template('index.html', posts=posts, current_user=g.get('current_user'))
 
 @bp.route('/comment/<int:post_id>', methods=['POST'])

@@ -20,6 +20,7 @@ class CommentForm(FlaskForm):
 
 class PostForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired(), Length(max=120)])
-    content = TextAreaField('Content', validators=[DataRequired()])  # Accepts Summernote HTML
+    content = TextAreaField('Content', validators=[DataRequired()])
+    tags = StringField('Tags', validators=[Length(max=200)], description='Enter tags separated by commas (e.g., tech, python)')
     scheduled_at = DateTimeLocalField('Schedule At (optional)', format='%Y-%m-%dT%H:%M', validators=[])
     submit = SubmitField('Submit')

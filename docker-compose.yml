@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+      - db-data:/app/blog.db  # SQLite database file
+    environment:
+      - FLASK_ENV=development  # Override to development for debugging
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - REDIS_URL=redis://redis:6379/0
+      - SQLALCHEMY_DATABASE_URI=sqlite:///blog.db
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7.0-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+volumes:
+  db-data:
+  redis-data:

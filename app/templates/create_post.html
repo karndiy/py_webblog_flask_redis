@@ -3,15 +3,15 @@
 {% block content %}
     <div class="max-w-2xl mx-auto mt-10">
         <h1 class="text-3xl font-bold text-gray-800 mb-6">{% if post %}Edit Post{% else %}Create a Post{% endif %}</h1>
-        <form method="POST" action="{% if post %}{{ url_for('main.edit_post', id=post.id) }}{% else %}{{ url_for('main.create_post') }}{% endif %}" class="space-y-4">
+        <form method="POST" action="{% if post %}{{ url_for('main.edit_post', id=post.id) }}{% else %}{{ url_for('main.create_post') }}{% endif %}" class="space-y-4" id="post-form">
             {{ form.hidden_tag() }}
             <div>
                 <label for="title" class="block text-sm font-medium text-gray-700">Title</label>
                 {{ form.title(class="w-full p-2 mt-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="Enter post title") }}
             </div>
             <div>
-                <label for="content" class="block text-sm font-medium text-gray-700">Content (HTML supported)</label>
-                {{ form.content(class="w-full p-2 mt-1 border rounded-md h-40 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="Enter post content") }}
+                <label for="content" class="block text-sm font-medium text-gray-700">Content (WYSIWYG Editor)</label>
+                <textarea id="content" name="content">{{ post.content if post else '' }}</textarea>
             </div>
             <div>
                 <label for="scheduled_at" class="block text-sm font-medium text-gray-700">Schedule At (optional)</label>
@@ -20,4 +20,29 @@
             {{ form.submit(class="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition duration-200") }}
         </form>
     </div>
+
+    <!-- TinyMCE Initialization -->
+    <script>
+        tinymce.init({
+            selector: '#content',  // Target the specific textarea by ID
+            plugins: [
+                'anchor', 'autolink', 'charmap', 'codesample', 'emoticons', 'image', 'link', 'lists', 'media', 'searchreplace', 'table', 'visualblocks', 'wordcount',
+                'checklist', 'mediaembed', 'casechange', 'export', 'formatpainter', 'pageembed', 'a11ychecker', 'tinymcespellchecker', 'permanentpen', 'powerpaste', 'advtable', 'advcode', 'editimage', 'advtemplate', 'ai', 'mentions', 'tinycomments', 'tableofcontents', 'footnotes', 'mergetags', 'autocorrect', 'typography', 'inlinecss', 'markdown', 'importword', 'exportword', 'exportpdf'
+            ],
+            toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table mergetags | addcomment showcomments | spellcheckdialog a11ycheck typography | align lineheight | checklist numlist bullist indent outdent | emoticons charmap | removeformat',
+            tinycomments_mode: 'embedded',
+            tinycomments_author: '{{ current_user.username if current_user else "Guest" }}',  // Dynamic author name
+            mergetags_list: [
+                { value: 'First.Name', title: 'First Name' },
+                { value: 'Email', title: 'Email' }
+            ],
+            ai_request: (request, respondWith) => respondWith.string(() => Promise.reject('See docs to implement AI Assistant')),
+            height: 400,
+            setup: function (editor) {
+                editor.on('change', function () {
+                    editor.save();  // Sync TinyMCE content to the textarea
+                });
+            }
+        });
+    </script>
 {% endblock %}

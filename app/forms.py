@@ -14,7 +14,7 @@ class RegisterForm(FlaskForm):
 
 class PostForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired(), Length(max=120)])
-    content = TextAreaField('Content', validators=[DataRequired()])
+    content = TextAreaField('Content', validators=[DataRequired()])  # Accepts HTML from TinyMCE
     scheduled_at = DateTimeLocalField('Schedule At (optional)', format='%Y-%m-%dT%H:%M', validators=[])
     submit = SubmitField('Submit')
 

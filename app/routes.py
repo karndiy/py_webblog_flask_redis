@@ -44,7 +44,8 @@ def process_tags(tag_string):
 @bp.route('/')
 @token_required
 def index():
-    posts = Post.query.all()
+    #posts = Post.query.all()
+    posts = Post.query.order_by(Post.created_at.desc()).all()
     return render_template('index.html', posts=posts, current_user=g.get('current_user'))
 
 @bp.route('/post/<int:id>')

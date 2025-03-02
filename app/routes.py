@@ -40,6 +40,7 @@ def view_post(id):
     form = CommentForm()
     return render_template('post.html', post=post, comments=comments, form=form, current_user=g.get('current_user'))
 
+
 # @bp.route('/create', methods=['GET', 'POST'])
 # @token_required
 # def create_post():
@@ -49,7 +50,7 @@ def view_post(id):
 #     if request.method == 'POST' and form.validate_on_submit():
 #         post = Post(
 #             title=form.title.data,
-#             content=form.content.data,
+#             content=form.content.data,  # This now contains HTML from TinyMCE
 #             user_id=g.current_user.id,
 #             scheduled_at=form.scheduled_at.data if form.scheduled_at.data else None
 #         )
@@ -57,7 +58,10 @@ def view_post(id):
 #         db.session.commit()
         
 #         if form.scheduled_at.data:
-#             redis_client.set(f"post:{post.id}", post.content)
+#             try:
+#                 redis_client.set(f"post:{post.id}", post.content)
+#             except redis.exceptions.ConnectionError:
+#                 print("Warning: Could not connect to Redis. Post scheduled but not stored in Redis.")
             
 #         return redirect(url_for('main.index'))
 #     return render_template('create_post.html', form=form, current_user=g.get('current_user'))
@@ -71,7 +75,7 @@ def create_post():
     if request.method == 'POST' and form.validate_on_submit():
         post = Post(
             title=form.title.data,
-            content=form.content.data,  # This now contains HTML from TinyMCE
+            content=form.content.data,  # Receives Summernote HTML
             user_id=g.current_user.id,
             scheduled_at=form.scheduled_at.data if form.scheduled_at.data else None
         )

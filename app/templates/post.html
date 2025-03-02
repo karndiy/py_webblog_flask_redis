@@ -2,25 +2,69 @@
 {% block title %}{{ post.title }} - My Blog{% endblock %}
 {% block content %}
     <div class="max-w-4xl mx-auto mt-8">
-        <h1 class="text-3xl font-bold text-gray-800 mb-4">{{ post.title }}</h1>
-        <div class="text-gray-700 mb-4">{{ post.content|safe }}</div>
-        <p class="text-sm text-gray-500">Posted by {{ post.author.username }} on {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
-        
-        <h2 class="text-2xl font-bold text-gray-800 mt-8 mb-4">Comments</h2>
-        {% for comment in comments %}
-            <div class="bg-white p-4 mb-4 rounded-lg shadow-md">
-                <p>{{ comment.content }}</p>
-                <p class="text-sm text-gray-500">{{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
-            </div>
-        {% endfor %}
-        
-        <form method="POST" action="{{ url_for('main.add_comment', post_id=post.id) }}" class="mt-6">
-            {{ form.hidden_tag() }}
-            <div>
-                <label for="content" class="block text-sm font-medium text-gray-700">Add a Comment</label>
-                {{ form.content(class="w-full p-2 mt-1 border rounded-md h-20 focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder="Enter your comment") }}
-            </div>
-            {{ form.submit(class="mt-2 bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600") }}
-        </form>
+        <!-- Post Header -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">{{ post.title }}</h1>
+            <p class="text-sm text-gray-500 mb-4">
+                Posted by <span class="font-semibold">{{ post.author.username }}</span> on 
+                {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}
+                {% if post.scheduled_at %}
+                    <span class="text-purple-500"> (Scheduled for {{ post.scheduled_at.strftime('%Y-%m-%d %H:%M') }})</span>
+                {% endif %}
+            </p>
+            <div class="text-gray-700 prose max-w-none">{{ post.content|safe }}</div>
+        </div>
+
+        <!-- Comments Section -->
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Comments</h2>
+        {% if comments %}
+            {% for comment in comments %}
+                <div class="bg-white p-4 mb-4 rounded-lg shadow-md">
+                    <div class="text-gray-700 prose max-w-none">{{ comment.content|safe }}</div>
+                    <p class="text-sm text-gray-500 mt-2">{{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-gray-600 italic">No comments yet. Be the first to comment!</p>
+        {% endif %}
+
+        <!-- Comment Form with Summernote -->
+        <div class="mt-8">
+            <h3 class="text-xl font-semibold text-gray-800 mb-2">Add a Comment</h3>
+            <form method="POST" action="{{ url_for('main.add_comment', post_id=post.id) }}" class="space-y-4">
+                {{ form.hidden_tag() }}
+                <div>
+                    <label for="content" class="block text-sm font-medium text-gray-700">Your Comment (WYSIWYG Editor)</label>
+                    <textarea id="summernote-comment" name="content" class="w-full"></textarea>
+                </div>
+                {{ form.submit(class="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition duration-200") }}
+            </form>
+        </div>
     </div>
+
+    <!-- Summernote Initialization for Comments -->
+    <script>
+        $(document).ready(function() {
+            $('#summernote-comment').summernote({
+                height: 200,  // Smaller height for comments
+                minHeight: null,
+                maxHeight: null,
+                focus: true,
+                placeholder: 'Enter your comment here...',
+                toolbar: [
+                    ['style', ['style']],
+                    ['font', ['bold', 'italic', 'underline', 'clear']],
+                    ['color', ['color']],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', ['link', 'picture']],
+                    ['view', ['fullscreen', 'codeview']]
+                ],
+                callbacks: {
+                    onChange: function(contents, $editable) {
+                        $('#summernote-comment').val(contents);  // Sync content to textarea
+                    }
+                }
+            });
+        });
+    </script>
 {% endblock %}
